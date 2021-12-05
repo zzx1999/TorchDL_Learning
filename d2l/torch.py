@@ -199,7 +199,8 @@ def get_dataloader_workers():
 # Defined in file: ./chapter_linear-networks/image-classification-dataset.md
 def load_data_fashion_mnist(batch_size, resize=None):
     """Download the Fashion-MNIST dataset and then load it into memory."""
-    trans = [transforms.ToTensor()]
+    trans = [transforms.ToTensor()]#ToTensor类是实现：Convert a PIL Image or numpy.ndarray to tensor的过程，
+                                    #在PyTorch中常用PIL库来读取图像数据，因此这个方法相当于搭建了PIL Image和Tensor的桥梁。
     if resize:
         trans.insert(0, transforms.Resize(resize))
     trans = transforms.Compose(trans)
@@ -468,7 +469,37 @@ def evaluate_accuracy_gpu(net, data_iter, device=None):
             y = y.to(device)
             metric.add(d2l.accuracy(net(X), y), d2l.size(y))
     return metric[0] / metric[1]
-
+def train_ch5(net,train_iter,test_iter,batch_size,optimizer,device,num_epoches):
+    net = net.to(device)
+    print("training on",device)
+    loss = torch.nn.CrossEntropyLoss()
+    for epoch in range(num_epoches):
+        train_l_sum,train_acc_sum,test_acc,n,batch_count,start = 0.0,0.0,0.0,0,0,time.time()
+        for X,y in train_iter:#准备数据
+            X = X.to(device)
+            y = y.to(device)
+            y_hat = net(X) #forward
+            l = loss(y_hat,y)#算Loss
+            optimizer.zero_grad()#梯度清零
+            l.backward()#反向传播
+            optimizer.step()#更新权重
+            train_l_sum += l.cpu().item()
+            train_acc_sum += (y_hat.argmax(dim=1) == y).sum().cpu().item() #算对的数量
+            n += y.shape[0]
+            batch_count += 1
+        test_acc += d2l.evaluate_accuracy_gpu(net,test_iter,device)
+        print('epoch %d, loss %.4f, train acc %.3f, test acc %.3f, time %.1f sec'
+              % (epoch + 1, train_l_sum / batch_count, train_acc_sum / n, test_acc, time.time() - start))
+            
+class GlobalAvgPool2d(nn.Module):
+    # 全局平均池化层，可将窗口设置成输入的宽高实现
+    #全局平均池化则直接把整幅feature maps（它的个数等于类别个数）进行平均池化，然后输入到softmax层中得到对应的每个类别的得分。
+    def __init__(self):
+        super(GlobalAvgPool2d,self).__init__()
+    def forward(self,x):
+        return F.avg_pool2d(x,kernel_size=x.size()[2:])           
+            
+    
 
 # Defined in file: ./chapter_convolutional-neural-networks/lenet.md
 def train_ch6(net, train_iter, test_iter, num_epochs, lr, device):
@@ -511,7 +542,6 @@ def train_ch6(net, train_iter, test_iter, num_epochs, lr, device):
           f'test acc {test_acc:.3f}')
     print(f'{metric[2] * num_epochs / timer.sum():.1f} examples/sec '
           f'on {str(device)}')
-
 
 # Defined in file: ./chapter_convolutional-modern/resnet.md
 class Residual(nn.Module):
