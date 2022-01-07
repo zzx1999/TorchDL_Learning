@@ -443,7 +443,7 @@ def train_and_predict_rnn(rnn, get_params, init_rnn_state, num_hiddens,
             # 否则需要使用detach函数从计算图分离隐藏状态, 这是为了
             # 使模型参数的梯度计算只依赖一次迭代读取的小批量序列(防止梯度计算开销太大)
                 for s in state:
-                    s.detach_()
+                    s.detach()
             
             inputs = to_onehot(X, vocab_size)
             # outputs有num_steps个形状为(batch_size, vocab_size)的矩阵
@@ -460,7 +460,7 @@ def train_and_predict_rnn(rnn, get_params, init_rnn_state, num_hiddens,
             if params[0].grad is not None:
                 for param in params:
                     param.grad.data.zero_()
-            l.backward()
+            l.backward(retain_graph=True )
             grad_clipping(params, clipping_theta, device)  # 裁剪梯度
             sgd(params, lr, 1)  # 因为误差已经取过均值，梯度不用再做平均
             l_sum += l.item() * y.shape[0]
