@@ -460,7 +460,7 @@ def train_and_predict_rnn(rnn, get_params, init_rnn_state, num_hiddens,
             if params[0].grad is not None:
                 for param in params:
                     param.grad.data.zero_()
-            l.backward(retain_graph=True )
+            l.backward(retain_)
             grad_clipping(params, clipping_theta, device)  # 裁剪梯度
             sgd(params, lr, 1)  # 因为误差已经取过均值，梯度不用再做平均
             l_sum += l.item() * y.shape[0]
